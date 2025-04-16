@@ -14,11 +14,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Java (SonarQube requirement)
+      - name: Set up Java for Sonar
         uses: actions/setup-java@v3
         with:
-          java-version: '17'
-
+          distribution: temurin
+          java-version: 17
+          java-package: jdk
+          check-latest: false
+          server-id: github
+          server-username: ${{ github.actor }}
+          server-password: ${{ secrets.GITHUB_TOKEN }}
+          overwrite-settings: true
+          job-status: success
+          token: ${{ secrets.SONAR_TOKEN }}
+      
+      
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v2
         with:
