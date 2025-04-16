@@ -1,0 +1,73 @@
+name: Staging Environment CI/CD
+
+on:
+  push:
+    branches:
+      - stage
+
+jobs:
+  scan-and-build:
+    name: SonarQube & ZAP Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Java for SonarQube
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarqube-scan-action@v2
+        with:
+          projectBaseDir: ./app
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: Build and run container for scanning
+        run: |
+          docker build -t securebanking-stage ./app
+          docker run -d -p 8080:8080 --name testapp securebanking-stage
+
+      - name: OWASP ZAP Scan
+        uses: zaproxy/action-baseline@v0.9.0
+        with:
+          target: 'http://localhost:8080'
+          cmd_options: '-t 120'
+        continue-on-error: true
+
+      - name: Upload ZAP Scan Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: zap-stage-report
+          path: owasp-zap-report.html
+
+  terraform-deploy:
+    name: Deploy Infra to Staging
+    runs-on: ubuntu-latest
+    needs: scan-and-build
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init (Staging)
+        run: terraform init
+        working-directory: ./terraform/envs/stage
+
+      - name: Terraform Plan
+        run: terraform plan -var-file="terraform.tfvars"
+        working-directory: ./terraform/envs/stage
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -var-file="terraform.tfvars"
+        working-directory: ./terraform/envs/stage
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

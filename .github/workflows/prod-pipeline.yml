@@ -1,0 +1,93 @@
+name: Production Environment CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  scan-and-secure:
+    name: SonarQube & OWASP ZAP Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Java for Sonar
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarqube-scan-action@v2
+        with:
+          projectBaseDir: ./app
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: Build and Run App Container
+        run: |
+          docker build -t securebanking-prod ./app
+          docker run -d -p 8080:8080 --name testapp securebanking-prod
+
+      - name: OWASP ZAP Scan
+        uses: zaproxy/action-baseline@v0.9.0
+        with:
+          target: 'http://localhost:8080'
+          cmd_options: '-t 120'
+        continue-on-error: true
+
+      - name: Upload ZAP Scan Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: zap-prod-report
+          path: owasp-zap-report.html
+
+  deploy-infrastructure:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: scan-and-secure
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init (Prod)
+        run: terraform init
+        working-directory: ./terraform/envs/prod
+
+      - name: Terraform Plan
+        run: terraform plan -var-file="terraform.tfvars"
+        working-directory: ./terraform/envs/prod
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -var-file="terraform.tfvars"
+        working-directory: ./terraform/envs/prod
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Notify Slack on Success
+        if: success()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_MESSAGE: |
+            ✅ *Prod Deployment Succeeded!*
+            Project: Secure Banking CI/CD
+            Branch: ${{ github.ref }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+
+      - name: Notify Slack on Failure
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_COLOR: "#ff0000"
+          SLACK_MESSAGE:_

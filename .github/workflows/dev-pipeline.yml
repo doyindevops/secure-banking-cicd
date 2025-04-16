@@ -1,0 +1,69 @@
+name: Dev Environment CI Pipeline
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  static-analysis:
+    name: Code Quality & Security Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Java (SonarQube requirement)
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v2
+        with:
+          projectBaseDir: ./app
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: Build and start test app container
+        run: |
+          docker build -t securebanking-dev ./app
+          docker run -d -p 8080:8080 --name testapp securebanking-dev
+
+      - name: OWASP ZAP Scan (DAST)
+        uses: zaproxy/action-baseline@v0.9.0
+        with:
+          target: 'http://localhost:8080'
+          cmd_options: '-t 120'
+        continue-on-error: true
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: zap-report
+          path: owasp-zap-report.html
+
+  terraform-plan:
+    name: Terraform Plan (no deploy)
+    runs-on: ubuntu-latest
+    needs: static-analysis
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform/envs/dev
+
+      - name: Terraform Plan
+        run: terraform plan -var-file="terraform.tfvars"
+        working-directory: ./terraform/envs/dev
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
