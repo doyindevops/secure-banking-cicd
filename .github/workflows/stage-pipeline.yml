@@ -41,23 +41,21 @@ jobs:
         run: |
           docker build -t securebanking-stage ./app
           docker run -d -p 8080:8080 --name testapp securebanking-stage
-
-          - name: Run OWASP ZAP Scan
-          uses: zaproxy/action-baseline@v0.9.0
-          with:
-            target: https://your-staging-url.com
-            cmd_options: >
-              -I
-              -r owasp-zap-report.html
-              --exit-code 0
+  
+      - name: Run OWASP ZAP Scan
+        uses: zaproxy/action-baseline@v0.9.0
+        with:
+          target: http://localhost:8080
+          cmd_options: "-I -r owasp-zap-report.html --exit-code 0"
           continue-on-error: true
-        
+  
       - name: Upload ZAP Scan Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: zap-report
-          path: owasp-zap-report.html
+            name: zap-report
+            path: owasp-zap-report.html
+  
         
 
   terraform-deploy:
