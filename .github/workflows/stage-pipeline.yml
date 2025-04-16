@@ -78,6 +78,8 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -var-file="terraform.tfvars"
         working-directory: ./terraform/envs/stage
+          terraform plan -out=tfplan -var-file="terraform.tfvars"
+
 
       - name: Terraform Apply
         run: terraform apply -auto-approve -var-file="terraform.tfvars"
