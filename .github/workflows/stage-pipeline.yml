@@ -44,17 +44,18 @@ jobs:
   
       - name: Run OWASP ZAP Scan
         uses: zaproxy/action-baseline@v0.9.0
+        continue-on-error: true
         with:
           target: http://localhost:8080
           cmd_options: "-I -r owasp-zap-report.html -J report_json.json -w report_md.md"
-          continue-on-error: true
+
   
       - name: Upload ZAP Scan Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
             name: zap-report
-            path: owasp-zap-report.html
+            path: zap-report.html
   
         
 
@@ -93,3 +94,8 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      
+
+      - name: List files for debug
+        run: ls -la
+            
