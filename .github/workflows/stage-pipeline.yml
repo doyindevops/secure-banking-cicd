@@ -14,10 +14,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Java for SonarQube
+      - name: Set up Java for Sonar
         uses: actions/setup-java@v3
         with:
-          java-version: '17'
+          distribution: temurin
+          java-version: 17
+          java-package: jdk
+          check-latest: false
+          server-id: github
+          server-username: ${{ github.actor }}
+          server-password: ${{ secrets.GITHUB_TOKEN }}
+          overwrite-settings: true
+          job-status: success
+          token: ${{ secrets.SONAR_TOKEN }}
+      
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarqube-scan-action@v2
@@ -57,9 +67,13 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
 
-      - name: Terraform Init (Staging)
+      - name: Terraform Init
         run: terraform init
         working-directory: ./terraform/envs/stage
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
 
       - name: Terraform Plan
         run: terraform plan -var-file="terraform.tfvars"
