@@ -105,4 +105,10 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_COLOR: "#ff0000"
-          SLACK_MESSAGE:_
+          SLACK_MESSAGE: |
+            ❌ *Prod Deployment Failed!*
+            Project: Secure Banking CI/CD
+            Branch: ${{ github.ref }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+
