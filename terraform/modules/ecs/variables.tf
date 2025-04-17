@@ -19,11 +19,17 @@ variable "subnet_ids" {
 }
 
 variable "security_group_ids" {
-  description = "Security groups to attach to the task"
+  description = "List of security group IDs to attach to the ECS service"
   type        = list(string)
 }
 
 variable "execution_role_arn" {
   description = "IAM role ARN for ECS task execution"
   type        = string
+}
+
+variable "assign_public_ip" {
+  description = "Should the ECS task get a public IP"
+  type        = bool
+  default     = false
 }
