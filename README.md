@@ -89,3 +89,6 @@ secure-banking-cicd/
 ---
 
 > Built as a professional DevOps portfolio project 💼
+
+
+[![Production Environment CI/CD](https://github.com/doyindevops/secure-banking-cicd/actions/workflows/prod-pipeline.yml/badge.svg)](https://github.com/doyindevops/secure-banking-cicd/actions/workflows/prod-pipeline.yml)
