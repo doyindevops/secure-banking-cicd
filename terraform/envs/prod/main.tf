@@ -5,13 +5,14 @@ provider "aws" {
 # VPC
 module "vpc" {
   source             = "../../modules/vpc"
-  project            = var.project
-  vpc_cidr           = var.vpc_cidr
-  public_subnets     = var.public_subnets
-  private_subnets    = var.private_subnets
-  availability_zones = var.availability_zones
-  enable_nat_gateway = false  # ✅ Cost control for dev
+  project            = "securebanking-prod"
+  vpc_cidr           = "10.0.0.0/16"
+  public_subnets     = ["10.0.1.0/24", "10.0.2.0/24"]
+  private_subnets    = ["10.0.3.0/24", "10.0.4.0/24"]
+  availability_zones = ["us-east-1a", "us-east-1b"]
+  enable_nat_gateway = false
 }
+
 
 # IAM - ECS Execution Role
 module "iam" {
@@ -29,11 +30,13 @@ module "security" {
 # ECS Fargate Service
 module "ecs" {
   source              = "../../modules/ecs"
-  project             = var.project
-  container_image     = "nginx:latest"
+  project             = "securebanking-prod"
+  container_image     = "adedoyine/securebanking-app:latest"
   container_port      = 8080
-  subnet_ids          = module.vpc.private_subnet_ids
+  subnet_ids          = module.vpc.public_subnet_ids
+  assign_public_ip    = true
   security_group_ids  = [module.security.security_group_id]
-  execution_role_arn  = module.iam.ecs_execution_role_arn   # ✅ Correct input
+  execution_role_arn  = module.iam.ecs_execution_role_arn
 }
+
 
