@@ -1,9 +1,9 @@
-name: Dev Environment CI Pipeline
+#name: Dev Environment CI Pipeline
 
-on:
-  push:
-    branches:
-      - dev
+#on:
+#  push:
+#    branches:
+    
 
 jobs:
   static-analysis:
