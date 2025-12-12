@@ -34,7 +34,7 @@ This visual gallery highlights key artifacts and infrastructure states from the 
 ![Terraform Lock Table](images/dynamo-terraformlock.png)
 
 ### DynamoDB View
-![DynamoDB View](images/dynamodb view.png)
+![DynamoDB View](images/dynamodb-view.png)
 
 ### Slack Notification
 ![Slack Notification](images/slack.png)
